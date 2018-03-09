@@ -121,5 +121,34 @@ echo {bababa} >> file 将输出重定向到文件
 PATH =.....
 ```
 
+## 文本处理
 
+### find 文件查找等处理
+```sh
+find . \( -name "*.txt" -o -name "*.pdf" \) - print #查找txt和pdf文件
+find . -regex ".*\(\.txt|\.pdf\)$" #查找txt和pdf文件
+find . -iregex ".*\(\.txt|\.pdf\)$" #忽略大小写的查找
+find . ! -name "*.txt" -print #查找非txt文本
+find . -maxdepth 1 -type f #查找深度为1
+find . -type d -print  #查找所有目录
+#更多find 命令请参考man find
+```
+### 后续操作
+```sh
+find . -type f -name "*.swp" -delete #找到删除
+find . -type f -name "*.swp" | xargs rm
+find . -type f -user root -exec chown weber {} \; #{}表示所有匹配上的文件名
+find . -type f -mtime +10 -name "*.txt" -exec cp {} OLD \;
+```
+
+### grep 文本搜索
+grep 常用参数
+ * -o 只输出匹配的文本行
+ * -v 只输出没有匹配的文本行
+ * -c 统计文件中包含文本的次数
+ * -n 打印匹配的行号
+ * -i 搜索时忽略大小写
+ * -I 只打印文件名
+
+ 
 
