@@ -1,6 +1,6 @@
 # attention : this file is based on the https://github.com/floydhub/dl-docker/blob/master/Dockerfile.gpu
 
-FROM nvidia/cuda:8.0-cudnn5-devel-ubuntu14.04
+FROM nvidia/cuda:8.0-cudnn6-devel-ubuntu14.04
 
 MAINTAINER wangkai <wangkai_like@163.com>
 
@@ -121,11 +121,14 @@ RUN apt-get update && apt-get install -y \
 	apt-get autoremove && \
 	rm -rf /var/lib/apt/lists/*
 
+RUN apt-get install -y openssl 
+
 # Install other useful Python packages using pip
-RUN pip --no-cache-dir install --upgrade ipython && \
-	pip --no-cache-dir install \
+RUN pip --no-cache-dir install -i https://pypi.tuna.tsinghua.edu.cn/simple  --upgrade ipython==5.0 && \
+	pip --no-cache-dir install -i https://pypi.tuna.tsinghua.edu.cn/simple \
 		Cython \
 		ipykernel \
+		tornado==4.0 \
 		jupyter \
 		path.py \
 		Pillow \
@@ -139,7 +142,7 @@ RUN pip --no-cache-dir install --upgrade ipython && \
 
 
 # Install TensorFlow
-RUN pip --no-cache-dir install \
+RUN pip --no-cache-dir install  -i https://pypi.tuna.tsinghua.edu.cn/simple \
 	https://storage.googleapis.com/tensorflow/linux/${TENSORFLOW_ARCH}/tensorflow_${TENSORFLOW_ARCH}-${TENSORFLOW_VERSION}-cp27-none-linux_x86_64.whl
 
 
@@ -163,7 +166,7 @@ RUN apt-get update && apt-get install -y \
 # Install Caffe
 RUN git clone -b ${CAFFE_VERSION} --depth 1 https://github.com/BVLC/caffe.git /root/caffe && \
 	cd /root/caffe && \
-	cat python/requirements.txt | xargs -n1 pip install && \
+	cat python/requirements.txt | xargs -n1 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple && \
 	mkdir build && cd build && \
 	cmake -DUSE_CUDNN=1 -DBLAS=Open .. && \
 	make -j"$(nproc)" all && \
@@ -179,7 +182,7 @@ RUN echo "$CAFFE_ROOT/build/lib" >> /etc/ld.so.conf.d/caffe.conf && ldconfig
 
 
 # Install Theano and set up Theano config (.theanorc) for CUDA and OpenBLAS
-RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git@${THEANO_VERSION} && \
+RUN pip --no-cache-dir install -i https://pypi.tuna.tsinghua.edu.cn/simple  git+git://github.com/Theano/Theano.git@${THEANO_VERSION} && \
 	\
 	echo "[global]\ndevice=gpu\nfloatX=float32\noptimizer_including=cudnn\nmode=FAST_RUN \
 		\n[lib]\ncnmem=0.95 \
@@ -190,11 +193,11 @@ RUN pip --no-cache-dir install git+git://github.com/Theano/Theano.git@${THEANO_V
 
 
 # Install Keras
-RUN pip --no-cache-dir install git+git://github.com/fchollet/keras.git@${KERAS_VERSION}
+RUN pip --no-cache-dir install -i https://pypi.tuna.tsinghua.edu.cn/simple  git+git://github.com/fchollet/keras.git@${KERAS_VERSION}
 
 
 # Install Lasagne
-RUN pip --no-cache-dir install git+git://github.com/Lasagne/Lasagne.git@${LASAGNE_VERSION}
+RUN pip --no-cache-dir install -i https://pypi.tuna.tsinghua.edu.cn/simple  git+git://github.com/Lasagne/Lasagne.git@${LASAGNE_VERSION}
 
 
 # Install Torch
@@ -212,25 +215,40 @@ ENV LUA_PATH='/root/.luarocks/share/lua/5.1/?.lua;/root/.luarocks/share/lua/5.1/
 ENV LUA_CPATH='/root/torch/install/lib/?.so;'$LUA_CPATH
 
 # Install the latest versions of nn, cutorch, cunn, cuDNN bindings and iTorch
-RUN luarocks install nn && \
-	luarocks install cutorch && \
-	luarocks install cunn && \
-    luarocks install loadcaffe && \
-	\
-	cd /root && git clone https://github.com/soumith/cudnn.torch.git && cd cudnn.torch && \
-	git checkout R4 && \
-	luarocks make && \
-	\
-	cd /root && git clone https://github.com/facebook/iTorch.git && \
-	cd iTorch && \
-	luarocks make
+#RUN luarocks install nn && \
+#	luarocks install cutorch && \
+#	luarocks install cunn && \
+#   luarocks install loadcaffe && \
+#	\
+#	cd /root && git clone https://github.com/soumith/cudnn.torch.git && cd cudnn.torch && \
+#	git checkout R4 && \
+#	luarocks make && \
+#	\
+#	cd /root && git clone https://github.com/facebook/iTorch.git && \
+#	cd iTorch && \
+#	luarocks make
+RUN luarocks install nn
+RUN luarocks install cutorch
+RUN luarocks install cunn
+RUN luarocks install loadcaffe
+
+RUN cd /root && git clone https://github.com/soumith/cudnn.torch.git && cd cudnn.torch && \
+        git checkout R4 && \
+        luarocks make 
+
+RUN cd /root && git clone https://github.com/facebook/iTorch.git && \
+        cd iTorch && \
+        luarocks make
 
 # Install OpenCV
-RUN git clone --depth 1 https://github.com/opencv/opencv.git /root/opencv && \
-	cd /root/opencv && \
+#RUN git clone --depth 1 https://github.com/opencv/opencv.git /root/opencv
+
+COPY opencv /root/opencv
+
+RUN cd /root/opencv && \
 	mkdir build && \
-	cd build && \
-	cmake -DWITH_QT=ON -DWITH_OPENGL=ON -DFORCE_VTK=ON -DWITH_TBB=ON -DWITH_GDAL=ON -DWITH_XINE=ON -DBUILD_EXAMPLES=ON .. && \
+	cd build && \ 
+	cmake -DCMAKE_LIBRARY_PATH=/usr/local/cuda/lib64/stubs  -DWITH_QT=ON -DWITH_OPENGL=ON -DFORCE_VTK=ON -DWITH_TBB=ON -DWITH_GDAL=ON -DWITH_XINE=ON -DBUILD_EXAMPLES=ON .. && \
 	make -j"$(nproc)"  && \
 	make install && \
 	ldconfig && \
@@ -242,8 +260,25 @@ COPY jupyter_notebook_config.py /root/.jupyter/
 # Jupyter has issues with being run directly: https://github.com/ipython/ipython/issues/7062
 COPY run_jupyter.sh /root/
 
-# Expose Ports for TensorBoard (6006), Ipython (8888)
-EXPOSE 6006 8888
+RUN apt-get update && apt-get install -y \
+	python3-pip \ 
+	&& \
+	apt-get clean && \
+        apt-get autoremove && \
+        rm -rf /var/lib/apt/lists/*
 
+# install ssh_server for remote connection
+
+RUN apt-get update && apt-get install -y \
+	openssh-server
+RUN mkdir /var/run/sshd
+RUN echo 'root:root' | chpasswd
+RUN sed -ri 's/^PermitRootLogin\s+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+#RUN sed -i 's/Subsystem sftp \/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp\n ForceCommand internal-sftp\n ChrootDirectory %h\n /' /etc/ssh/sshd_config
+RUN sed -ri 's/Subsystem sftp \/usr\/lib\/openssh\/sftp-server/Subsystem sftp internal-sftp /' /etc/ssh/sshd_config
+# Expose Ports for TensorBoard (6006), Ipython (8888)
+EXPOSE 6006 8888 22
 WORKDIR "/root"
-#CMD ["/bin/bash"]
+CMD ["/usr/sbin/sshd","-D"]
+CMD ["/bin/bash"]
