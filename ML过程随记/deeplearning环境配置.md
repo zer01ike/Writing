@@ -38,6 +38,88 @@ sudo usermod -aG docker your_username
 参考： https://docs.docker.com/install/linux/linux-postinstall/
 
 #### 配置nvidia-docker 
+1. 各种linux环境下可以直接用yum或者是apt-get安装
+
+2. 为了能连上docker需要对运行环境进行配置
+```Bash
+vi /etc/docker/daemon.json
+```
+在文件中加入NVIDIA运行环境的runtimes
+```
+{
+    "runtimes":{
+        "nvidia":{
+            "path":"/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}
+```
+```Bash
+sudo pkill -SIGHUP dockerd
+```
+3. 尝试使用nvidia-docker查看系统显卡信息
+```Bash
+nvidia-docker run --rm nvidia/cuda nvidia-smi
+```
+
+参考：https://github.com/nvidia/nvidia-container-runtime#docker-engine-setup
+
+### step.2
+#### Tips:
+我构建了包含TensorFlow，caffe，pytourch等深度学习环境的GPU版可以通过dockerhub查看[DeepLearning Image](https://hub.docker.com/r/zer0like/deeplearning/)具体安装的版本细节请看我的gitHub上的[Dockerfile](https://github.com/zer01ike/Writing/blob/master/ML%E8%BF%87%E7%A8%8B%E9%9A%8F%E8%AE%B0/Dockerfile)
+
+#### 手动构建自己的image
+通过docker提供的dockerfile的生成方式，构建自己的深度学习docker环境
+
+本节dockerfile在[floydhub](https://github.com/floydhub/dl-docker/blob/master/Dockerfile.gpu)的GPU上修改而成，主要修改的地方为添加了国内的源和更新了几个插件，和开启了ssh以及sftp方便pycharm的ssh远程管理和远程deployment，
+
+
+此处需要添加DockerFile的作用以及如何构建的过程
+
+
+
+#### build image
+```bash
+docker build -t "xxx/xxx" . #将当前目录下的DockerFile生成为镜像
+```
+
+#### run imgage
+当构建好一个nvidia-docker 驱动的image之后可以尝试启动，检查是否出现问题
+
+```bash
+nvidia-docker run -d -p 202:22 "xxx/xxx"  /usr/sbin/sshd -D 
+#启动ssh 方便链接进去查看是否能够使用Python以及需要的caffe以及TensorFlow环境 
+```
+
+利用ssh方式链接进入镜像然后测试tensorflow
+```bash
+ssh root@0.0.0.0 -p 202
+yes
+root
+python 
+import tensorflow
+eixt()
+```
+### step.3
+由于每次都需要使用nvida-docker来启动镜像，非常的繁琐和难记，尤其是需要多个端口挂载或者是文件挂载时。
+所以我们采用`docker-compose`来简单化启动和运行，节约时间
+
+#### 什么是docker-compose
+
+#### 构建docker-compose前需要注意的事情
+
+#### 如何构建docker-compose
+
+#### 利用docker-compose
+
+### step.4 
+
+#### 配置远程Python环境
+
+#### 配置远程deployment
+
+#### 运行你的tensorflow代码
 
 
 ## 总结
